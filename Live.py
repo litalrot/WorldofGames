@@ -1,3 +1,5 @@
+from Score import add_score
+
 def welcome(name):
     return f"Hello {name} and welcome to the World of Games (WoG). Here you can find many cool games to play."
 def load_game():
@@ -18,6 +20,7 @@ def load_game():
                         diff = int(diff)
                         if 1<= diff <= 5:
                             final['difficulty'] = diff
+                            add_score(diff)
                             return final
                         else:
                             print("Please choose a difficulty in the mentioned range.")
