@@ -1,0 +1,16 @@
+version: '3'
+services:
+  web:
+    build: .
+    ports:
+      - "8777:8777"
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_ENV=production
+
+  test:
+    build: .
+    command: python e2e.py
+    depends_on:
+      - web

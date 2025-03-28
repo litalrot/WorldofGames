@@ -4,28 +4,64 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // This checks out the code from the repository.
                 git clone
             }
         }
-        stage('Run Script') {
+
+        stage('Build') {
+            steps {
+                sh 'pip install -r requirements.txt'
+                sh 'docker build -t game-app .'
+            }
+        }
+
+        stage('Run') {
             steps {
                 script {
-                    // Jenkins sets BRANCH_NAME for multibranch pipelines.
-                    if (env.BRANCH_NAME == 'main') {
-                        // For the master branch, simply run the script.
-                        echo "Running myapp.py on main branch..."
-                        sh 'python myapp.py'
-                    } else if (env.BRANCH_NAME?.startsWith("feature")) {
-                        // For any branch starting with "feature", run the script and then fail intentionally.
-                        echo "Running myapp.py on a feature branch..."
-                        sh 'python myapp.py'
-                        error("Intentional failure for feature branch")
-                    } else {
-                        echo "Branch ${env.BRANCH_NAME} does not trigger any specific action."
-                    }
+                    sh 'docker-compose up -d web'
+                    sh 'sleep 10'
                 }
             }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    sh 'python e2e.py'
+                }
+            }
+            post {
+                failure {
+                    echo "E2E tests failed!"
+                    error "Tests failed"
+                }
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    // Push to Docker Hub or deploy to production
+                    sh 'docker tag game-app lit7/game-app'
+                    sh 'docker push lit7/game-app'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker-compose down'
+            sh 'docker system prune -f'
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
